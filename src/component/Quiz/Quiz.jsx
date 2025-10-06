@@ -90,8 +90,9 @@ function Layout(props) {
                 </Drawer>
             </Box>
 
-            <Box component="main" sx={{ flexGrow: 1, marginTop: `${navbarHeight}px`}}>
+            <Box component="main" sx={{ flexGrow: 1, marginTop: `${navbarHeight}px` }}>
                 <Routes>
+                    <Route index element={<CreateQuiz />} />
                     <Route path="create" element={<CreateQuiz />} />
                     <Route path="created" element={<CreatedQuizzes />} />
                     <Route path="previous/quizzes" element={<AttemptedQuizzes />} />

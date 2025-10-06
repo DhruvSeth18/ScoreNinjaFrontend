@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CreateUser } from '../api/api'; // Import your API function
 
 const SignUp = () => {
     const navigate = useNavigate();
@@ -18,23 +19,27 @@ const SignUp = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        try {
-            const response = await fetch('http://localhost:5000/api/auth/register', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify(formData)
-            });
 
-            if (response.ok) {
-                navigate('/login');
-            } else {
-                const error = await response.json();
-                console.error('Registration failed:', error);
-            }
-        } catch (error) {
-            console.error('Registration error:', error);
+        // Call your API function
+        const result = await CreateUser(formData);
+
+        if (result.status) {
+            console.log("User Created Successfully:", result.message);
+
+            // Optionally, auto-login after signup if you have LoginUser
+            // const loginResult = await LoginUser({ email: formData.email, password: formData.password });
+            // if (loginResult.status) {
+            //     localStorage.setItem("token", loginResult.token);
+            //     localStorage.setItem("username", loginResult.username);
+            //     navigate('/dashboard');
+            // } else {
+            //     console.log("Auto login failed:", loginResult.message);
+            // }
+
+            // For now, just navigate to login
+            navigate('/login');
+        } else {
+            console.log("Signup Failed:", result.message);
         }
     };
 
@@ -97,8 +102,6 @@ const SignUp = () => {
                                 placeholder="Create a password"
                             />
                         </div>
-
-                        {/* Remove confirm password div */}
                     </div>
 
                     <div>

@@ -23,8 +23,10 @@ const Login = () => {
         e.preventDefault();
         const result = await LoginUser(formData);
 
-        if (result.status) {
+        if (result.status && result.status===true) {
             console.log("Login Success:", result.message, "Token:", result.token);
+            localStorage.setItem("token",result.token);
+            localStorage.setItem("username",result.username)
             navigate('/dashboard');
         } else {
             console.log("Login Failed:", result.message);
