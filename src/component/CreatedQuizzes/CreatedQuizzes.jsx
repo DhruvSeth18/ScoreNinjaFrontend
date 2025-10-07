@@ -16,7 +16,6 @@ const CreatedQuizzes = () => {
             setLoading(true);
             const response = await GetMyQuizzes();
             if (response.status) {
-                // Map API data to match your card structure
                 const mappedQuizzes = response.data.quizzes.map((quiz) => ({
                     id: quiz.id,
                     title: quiz.quizName,
@@ -55,12 +54,12 @@ const CreatedQuizzes = () => {
             <Typography
                 variant="h4"
                 fontWeight="bold"
-                sx={{ 
-                    mb: 4, 
-                    textAlign: 'center', 
-                    background: 'linear-gradient(90deg, #4b6cb7, #182848)', 
-                    WebkitBackgroundClip: 'text', 
-                    WebkitTextFillColor: 'transparent' 
+                sx={{
+                    mb: 4,
+                    textAlign: 'center',
+                    background: 'linear-gradient(90deg, #4b6cb7, #182848)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
                 }}
             >
                 📚 Created Quizzes
@@ -92,23 +91,24 @@ const CreatedQuizzes = () => {
                             }}
                         >
                             <CardContent sx={{ pt: 2, pb: 2 }} onClick={() => navigate(`/quiz/${quiz.id}/edit`)}>
-                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 1 }}>
                                     <Typography
                                         variant="h5"
                                         fontWeight="bold"
                                         sx={{
-                                            maxWidth: { xs: 150, sm: 'auto' },
-                                            whiteSpace: { xs: 'nowrap', sm: 'normal' },
-                                            overflow: { xs: 'hidden', sm: 'visible' },
-                                            textOverflow: { xs: 'ellipsis', sm: 'clip' },
+                                            overflow: 'hidden',
+                                            textOverflow: 'ellipsis',
+                                            display: '-webkit-box',
+                                            WebkitLineClamp: 1,
+                                            WebkitBoxOrient: 'vertical',
                                         }}
                                     >
                                         {quiz.title}
                                     </Typography>
 
-                                    <Chip 
-                                        label={status} 
-                                        color={status === 'Over' ? 'error' : 'success'} 
+                                    <Chip
+                                        label={status}
+                                        color={status === 'Over' ? 'error' : 'success'}
                                         size="small"
                                         sx={{ fontWeight: 'bold' }}
                                     />
@@ -119,18 +119,28 @@ const CreatedQuizzes = () => {
                                     color="text.secondary"
                                     mb={1}
                                     sx={{
-                                        maxWidth: { xs: 200, sm: 'auto' },
-                                        whiteSpace: { xs: 'nowrap', sm: 'normal' },
-                                        overflow: { xs: 'hidden', sm: 'visible' },
-                                        textOverflow: { xs: 'ellipsis', sm: 'clip' },
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis',
+                                        display: '-webkit-box',
+                                        WebkitLineClamp: 2,
+                                        WebkitBoxOrient: 'vertical',
                                     }}
                                 >
                                     {quiz.description}
                                 </Typography>
 
-                                <Divider className='hidden md:block' sx={{ my: 1 }} />
+                                <Divider className="hidden md:block" sx={{ my: 1 }} />
 
-                                <Box sx={{ display: 'flex', gap: 0.5, mt: 1, flexWrap: 'wrap', color: 'text.secondary', fontSize: '0.875rem' }}>
+                                <Box
+                                    sx={{
+                                        display: 'flex',
+                                        gap: 0.5,
+                                        mt: 1,
+                                        flexWrap: 'wrap',
+                                        color: 'text.secondary',
+                                        fontSize: '0.875rem',
+                                    }}
+                                >
                                     <Typography>{quiz.date}</Typography>
                                     <Typography>|</Typography>
                                     <Typography>{quiz.startTime}</Typography>
@@ -153,7 +163,10 @@ const CreatedQuizzes = () => {
                                         transform: 'translateY(-50%)',
                                         bgcolor: 'primary.main',
                                         color: 'white',
-                                        '&:hover': { bgcolor: 'primary.dark', transform: 'translateY(-50%) scale(1.05)' },
+                                        '&:hover': {
+                                            bgcolor: 'primary.dark',
+                                            transform: 'translateY(-50%) scale(1.05)',
+                                        },
                                     }}
                                 >
                                     <ArrowForwardIosIcon />

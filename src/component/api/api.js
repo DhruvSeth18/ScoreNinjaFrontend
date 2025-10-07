@@ -81,6 +81,7 @@ export const CreateQuiz = async (data) => {
             return {
                 status: true,
                 message: response.data.message,
+                quizId:response.data.quizId
             };
         }
     } catch (error) {
@@ -182,5 +183,68 @@ export const addQuestionAPI = async (quizId, questionData) => {
     } catch (error) {
         console.error("Error adding question:", error);
         return { Message: "Failed to add question", error };
+    }
+};
+
+
+export const DeleteQuestion = async (quizId, questionText) => {
+    try {
+        const token = localStorage.getItem("token");
+        const response = await axios.delete(
+            `http://localhost:8080/api/quiz/deletequestion?quizId=${quizId}`,
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+                data: { questionText }, // ✅ body for DELETE
+            }
+        );
+
+        return {
+            status: response.data?.status ?? true,
+            data: response.data,
+            message: response.data?.Message || "Question deleted successfully",
+        };
+    } catch (error) {
+        console.error("Error deleting question:", error);
+        return {
+            status: false,
+            message:
+                error.response?.data?.Message ||
+                error.message ||
+                "Failed to delete question",
+        };
+    }
+};
+
+
+export const UpdateQuiz = async (quizId, quizData) => {
+    try {
+        const token = localStorage.getItem("token");
+        const response = await axios.put(
+            `http://localhost:8080/api/quiz/updatequiz?quizId=${quizId}`,
+            quizData, 
+            {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+            }
+        );
+        return {
+            status: true,
+            data: response.data,
+            message: response.data?.Message || "Quiz updated successfully",
+        };
+    } catch (error) {
+        console.error("Error updating quiz:", error);
+        return {
+            status: false,
+            message:
+                error.response?.data?.Message ||
+                error.message ||
+                "Failed to update quiz",
+        };
     }
 };
