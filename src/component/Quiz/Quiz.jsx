@@ -49,7 +49,7 @@ function Layout(props) {
                     </ListItemButton>
                 </ListItem>
                 <ListItem disablePadding>
-                    <ListItemButton component={Link} to="/quiz/previous/quizzes">
+                    <ListItemButton component={Link} to="/quiz/attempted/quizzes">
                         <ListItemIcon><HistoryIcon /></ListItemIcon>
                         <ListItemText primary="Attempted Quizzes" />
                     </ListItemButton>
@@ -90,12 +90,12 @@ function Layout(props) {
                 </Drawer>
             </Box>
 
-            <Box component="main" sx={{ flexGrow: 1, marginTop: `${navbarHeight}px` }}>
+            <Box component="main" sx={{ flexGrow: 1, marginTop: `${0}px` }}>
                 <Routes>
                     <Route index element={<CreateQuiz />} />
                     <Route path="create" element={<CreateQuiz />} />
                     <Route path="created" element={<CreatedQuizzes />} />
-                    <Route path="previous/quizzes" element={<AttemptedQuizzes />} />
+                    <Route path="attempted/quizzes" element={<AttemptedQuizzes />} />
                     <Route path=":quizId/edit" element={<EditQuiz />} />
                 </Routes>
             </Box>

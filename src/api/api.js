@@ -1,3 +1,4 @@
+import { ConstructionOutlined } from "@mui/icons-material";
 import axios from "axios";
 
 const url = "http://localhost:8080/api";
@@ -246,5 +247,211 @@ export const UpdateQuiz = async (quizId, quizData) => {
                 error.message ||
                 "Failed to update quiz",
         };
+    }
+};
+
+export const getAllUserQuizzes = async (userId) => {
+    try {
+        const response = await axios.get(`${url}/user/allQuizzes`, {
+            params: { userId },
+            withCredentials: true,
+            timeout: 6000,
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+
+        if (response.status === 200) {
+            return {
+                status: true,
+                message: response.data.message,
+                attemptedQuizzes: response.data.attemptedQuizzes,
+                createdQuizzes: response.data.createdQuizzes,
+                upcomingQuizzes: response.data.upcomingQuizzes,
+            };
+        }
+    } catch (error) {
+        if (error.response) {
+            return {
+                status: false,
+                message: error.response.data.message,
+            };
+        }
+        return {
+            status: false,
+            message: "Network error or server not responding",
+        };
+    }
+};
+
+export const CheckQuizExist = async (token, quizId) => {
+    try {
+        const response = await axios.get(`${url}/quiz/check`, {
+            headers: {
+                "Authorization": `Bearer ${token}`,
+                "Content-Type": "application/json",
+            },
+            params: { quizId },
+            withCredentials: true,
+            timeout: 6000,
+        });
+
+        if (response.status === 200) {
+            return {
+                status: true,
+                message: response.data.message,
+                isRegistered: response.data.isRegistered,
+                currentStatus: response.data.currentStatus,
+                isCreator: response.data.isCreator,
+                attemptId: response.data.attemptId || null,
+            };
+        }
+    } catch (error) {
+        if (error.response) {
+            return {
+                status: false,
+                message: error.response.data.message || "Server error",
+            };
+        }
+        return {
+            status: false,
+            message: "Network error or server not responding",
+        };
+    }
+};
+
+export const getSingleQuiz = async (quizId) => {
+    try {
+        const response = await axios.get(`${url}/quiz/test`, {
+            params: { quizId },
+            headers: {
+                'Content-Type': 'application/json',
+                // Agar JWT token use kar rahe ho:
+                'Authorization': `Bearer ${localStorage.getItem('token')}`
+            },
+            timeout: 6000
+        });
+
+        if (response.status === 200) {
+            return {
+                status: true,
+                quiz: response.data.quiz
+            };
+        }
+        return {
+            status: false,
+            message: 'Failed to fetch quiz'
+        };
+    } catch (error) {
+        if (error.response) {
+            return {
+                status: false,
+                message: error.response.data.message
+            };
+        }
+        return {
+            status: false,
+            message: 'Network error or server not responding'
+        };
+    }
+};
+
+export const registerQuiz = async (quizId) => {
+    try {
+        const token = localStorage.getItem('token'); // JWT token
+        if (!token) throw new Error('User not authenticated');
+
+        const response = await axios.post(`${url}/quiz/registerQuiz`, null, {
+            params: { quizId },
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            timeout: 6000
+        });
+
+        if (response.status === 200) {
+            return {
+                status: true,
+                message: response.data.message,
+                attempt: response.data.attempt,
+                quizDetails: response.data.quizDetails
+            };
+        }
+        return {
+            status: false,
+            message: 'Failed to register for quiz'
+        };
+    } catch (error) {
+        if (error.response) {
+            return {
+                status: false,
+                message: error.response.data.message
+            };
+        }
+        return {
+            status: false,
+            message: error.message || 'Network error or server not responding'
+        };
+    }
+};
+
+export const startQuiz = async (quizId) => {
+    try {
+        const token = localStorage.getItem('token'); // JWT token
+        console.log(quizId);
+        
+        const response = await axios.post(
+            `${url}/quiz/startquiz`,
+            null,
+            {
+                params: { quizId },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`,
+                },
+                timeout: 6000
+            }
+        );
+
+        if (response.status === 200) {
+            return {
+                status: true,
+                message: response.data.message,
+                attempt: response.data.attempt,
+                shuffledQuestions: response.data.attempt.shuffledQuestions,
+                user:response.data.user
+            };
+        }
+
+        return {
+            status: false,
+            message: 'Failed to start quiz'
+        };
+    } catch (error) {
+        if (error.response) {
+            return {
+                status: false,
+                message: error.response.data.message || 'Server error'
+            };
+        }
+        return {
+            status: false,
+            message: error.message || 'Network error or server not responding'
+        };
+    }
+};
+
+export const getQuizAttempt = async (userId, quizId) => {
+    try {
+        const token = localStorage.getItem('token');
+        const res = await axios.get(`${url}/quiz/quizstart`, {
+            params: { userId, quizId },
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        return res.data;
+    } catch (e) {
+        console.error('getQuizAttempt error:', e.response?.data || e.message);
+        return { status: false, message: e.response?.data?.message || e.message };
     }
 };

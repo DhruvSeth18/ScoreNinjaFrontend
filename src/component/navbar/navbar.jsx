@@ -34,7 +34,7 @@ const Navbar = () => {
                         <Typography
                             onClick={() => navigate('/')}
                             variant="h5" // Bigger logo
-                            className='tracking-[3px] font-bold bg-gradient-to-r from-blue-600 via-green-500 to-indigo-400 inline-block text-transparent bg-clip-text select-none cursor-pointer transition-transform duration-200 hover:scale-105'
+                            className='tracking-[3px] bg-gradient-to-r from-blue-600 via-green-500 to-indigo-400 inline-block text-transparent bg-clip-text select-none cursor-pointer transition-transform duration-200 hover:scale-105'
                         >
                             ScoreNinja
                         </Typography>

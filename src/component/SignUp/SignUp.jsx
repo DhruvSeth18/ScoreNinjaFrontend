@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CreateUser } from '../api/api'; // Import your API function
+import { CreateUser } from '../../api/api'; // Import your API function
 
 const SignUp = () => {
     const navigate = useNavigate();

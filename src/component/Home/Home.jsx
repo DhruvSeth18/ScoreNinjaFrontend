@@ -54,8 +54,8 @@ const Home = () => {
           Create, Manage, and Execute Online Tests with Confidence
         </p>
         <button 
-          onClick={() => navigate('/auth')} 
-          className="px-8 py-4 bg-gradient-to-r from-blue-500 to-teal-500 text-white text-lg rounded-full shadow-lg transition duration-300 transform hover:scale-105"
+          onClick={() => navigate('/quiz')} 
+          className="px-8 py-4 bg-gradient-to-r from-blue-500 to-teal-500 text-white text-lg rounded-full shadow-lg transition duration-300 transform hover:scale-105 cursor-pointer"
         >
           Get Started →
         </button>

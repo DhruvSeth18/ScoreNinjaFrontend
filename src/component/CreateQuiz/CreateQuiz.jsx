@@ -1,17 +1,38 @@
 import React, { useState } from "react";
-import * as MUI from "@mui/material";
+import {
+    Box,
+    Button,
+    Typography,
+    TextField,
+    TextareaAutosize,
+    Divider,
+    IconButton,
+    FormControl,
+    InputLabel,
+    Select,
+    MenuItem,
+    Dialog,
+    DialogTitle,
+    DialogContent,
+    DialogActions,
+    Slide,
+    Card
+} from "@mui/material";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
 import QuizIcon from "@mui/icons-material/Quiz";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { motion } from "framer-motion";
-import { CreateQuiz as createQuizAPI } from "../api/api"; // your API function
+import { CreateQuiz as createQuizAPI } from "../../api/api";
+import { useNavigate } from "react-router-dom";
 
 const Transition = React.forwardRef(function Transition(props, ref) {
-    return <MUI.Slide direction="down" ref={ref} {...props} />;
+    return <Slide direction="down" ref={ref} {...props} />;
 });
 
 const CreateQuiz = () => {
+    const navigate = useNavigate();
     const [formData, setFormData] = useState({
         quizName: "",
         description: "",
@@ -87,9 +108,9 @@ const CreateQuiz = () => {
             duration,
             totalQuestions,
             passingPercentage,
-            quizDate: `${formData.startDate}`+"T00:00:00", // LocalDate expected
-            startTime: formData.startTime + ":00", // append seconds
-            endTime: formData.endTime + ":00",     // append seconds
+            quizDate: `${formData.startDate}`+"T00:00:00",
+            startTime: formData.startTime + ":00",
+            endTime: formData.endTime + ":00",
         };
 
         const result = await createQuizAPI(payload);
@@ -105,31 +126,36 @@ const CreateQuiz = () => {
     const passingOptions = [10, 20, 30, 40, 50, 60, 70];
 
     return (
-        <MUI.Box className="w-full scrollbar-none bg-gray-50 md:p-[30px]">
-            <MUI.Box className="px-8 py-10 max-w-5xl mx-auto relative">
+        <Box className="w-full scrollbar-none bg-gray-50 md:p-[30px] md:pt-[110px]">
+            <Box className="px-8 py-10 max-w-5xl mx-auto relative">
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-50 to-purple-50 blur-2xl opacity-60 -z-10" />
 
-                <MUI.Box className="flex items-center gap-3 mb-6">
+                {/* Header with Back Button */}
+                <Box className="flex items-center gap-3 mb-6">
+                    <IconButton onClick={() => navigate(-1)} color="primary">
+                        <ArrowBackIcon />
+                    </IconButton>
+
                     <div className="p-3 bg-blue-600 rounded-xl shadow-lg">
                         <QuizIcon sx={{ fontSize: 34, color: "white" }} />
                     </div>
-                    <MUI.Box>
-                        <MUI.Typography variant="h4" fontWeight="bold" className="text-blue-700">
+                    <Box>
+                        <Typography variant="h4" fontWeight="bold" className="text-blue-700">
                             {quizSubmitted ? formData.quizName : "Create Your Quiz ✨"}
-                        </MUI.Typography>
+                        </Typography>
                         {quizSubmitted && (
-                            <MUI.Typography variant="subtitle1" className="text-gray-600 mt-1">
+                            <Typography variant="subtitle1" className="text-gray-600 mt-1">
                                 You can now add questions for this quiz.
-                            </MUI.Typography>
+                            </Typography>
                         )}
-                    </MUI.Box>
-                </MUI.Box>
+                    </Box>
+                </Box>
 
                 {!quizSubmitted && (
                     <>
-                        <MUI.Box className="flex flex-col gap-4 mb-6">
-                            <MUI.TextField label="Quiz Name" name="quizName" value={formData.quizName} onChange={handleChange} fullWidth />
-                            <MUI.TextareaAutosize
+                        <Box className="flex flex-col gap-4 mb-6">
+                            <TextField label="Quiz Name" name="quizName" value={formData.quizName} onChange={handleChange} fullWidth />
+                            <TextareaAutosize
                                 className="w-full outline-0 p-3 rounded-lg bg-white"
                                 minRows={4}
                                 name="description"
@@ -137,20 +163,20 @@ const CreateQuiz = () => {
                                 onChange={handleChange}
                                 placeholder="Enter detailed description for the quiz..."
                             />
-                        </MUI.Box>
+                        </Box>
 
-                        <MUI.Box className="flex flex-col md:flex-row gap-4 mb-6">
-                            <MUI.TextField type="date" label="Start Date" name="startDate" value={formData.startDate} onChange={handleChange} InputLabelProps={{ shrink: true }} className="flex-1 w-full" />
-                            <MUI.TextField type="time" label="Start Time" name="startTime" value={formData.startTime} onChange={handleChange} InputLabelProps={{ shrink: true }} className="flex-1 w-full" />
-                            <MUI.TextField type="time" label="End Time" name="endTime" value={formData.endTime} onChange={handleChange} InputLabelProps={{ shrink: true }} className="flex-1 w-full" />
-                        </MUI.Box>
+                        <Box className="flex flex-col md:flex-row gap-4 mb-6">
+                            <TextField type="date" label="Start Date" name="startDate" value={formData.startDate} onChange={handleChange} InputLabelProps={{ shrink: true }} className="flex-1 w-full" />
+                            <TextField type="time" label="Start Time" name="startTime" value={formData.startTime} onChange={handleChange} InputLabelProps={{ shrink: true }} className="flex-1 w-full" />
+                            <TextField type="time" label="End Time" name="endTime" value={formData.endTime} onChange={handleChange} InputLabelProps={{ shrink: true }} className="flex-1 w-full" />
+                        </Box>
 
-                        <MUI.Box className="flex flex-col md:flex-row gap-4 mb-6">
-                            <MUI.TextField type="number" label="Duration (Hours)" name="duration" value={formData.duration} onChange={handleNumberChange} className="flex-1 w-full" />
-                            <MUI.TextField type="number" label="Total Questions" name="totalQuestions" value={formData.totalQuestions} onChange={handleNumberChange} className="flex-1 w-full" />
-                            <MUI.FormControl className="flex-1 w-full">
-                                <MUI.InputLabel>Passing Percentage</MUI.InputLabel>
-                                <MUI.Select
+                        <Box className="flex flex-col md:flex-row gap-4 mb-6">
+                            <TextField type="number" label="Duration (Hours)" name="duration" value={formData.duration} onChange={handleNumberChange} className="flex-1 w-full" />
+                            <TextField type="number" label="Total Questions" name="totalQuestions" value={formData.totalQuestions} onChange={handleNumberChange} className="flex-1 w-full" />
+                            <FormControl className="flex-1 w-full">
+                                <InputLabel>Passing Percentage</InputLabel>
+                                <Select
                                     name="passingPercentage"
                                     value={formData.passingPercentage}
                                     onChange={handleNumberChange}
@@ -158,80 +184,81 @@ const CreateQuiz = () => {
                                     fullWidth
                                 >
                                     {passingOptions.map((opt) => (
-                                        <MUI.MenuItem key={opt} value={opt}>
+                                        <MenuItem key={opt} value={opt}>
                                             {opt}%
-                                        </MUI.MenuItem>
+                                        </MenuItem>
                                     ))}
-                                </MUI.Select>
-                            </MUI.FormControl>
-                        </MUI.Box>
+                                </Select>
+                            </FormControl>
+                        </Box>
 
-                        <MUI.Box className="flex justify-end mb-6">
-                            <MUI.Button variant="contained" color="primary" size="large" className="rounded-full px-8 py-3" onClick={handleSubmitQuiz}>
+                        <Box className="flex justify-end mb-6">
+                            <Button variant="contained" color="primary" size="large" className="rounded-full px-8 py-3" onClick={handleSubmitQuiz}>
                                 Submit Quiz
-                            </MUI.Button>
-                        </MUI.Box>
+                            </Button>
+                        </Box>
                     </>
                 )}
 
                 {quizSubmitted && (
                     <>
-                        <MUI.Typography className="mb-4 h-[50px] text-gray-700 font-medium">Number of Questions: {questions.length}</MUI.Typography>
+                        {/* Questions UI */}
+                        <Typography className="mb-4 h-[50px] text-gray-700 font-medium">Number of Questions: {questions.length}</Typography>
 
-                        <MUI.Box className="mb-10 p-6 rounded-2xl backdrop-blur-md bg-white/70 shadow-[0_4px_30px_rgba(0,0,0,0.05)]">
-                            <MUI.Typography variant="subtitle1" fontWeight="600" className="text-gray-700 mb-2">✍️ Question</MUI.Typography>
-                            <MUI.TextareaAutosize
+                        <Box className="mb-10 p-6 rounded-2xl backdrop-blur-md bg-white/70 shadow-[0_4px_30px_rgba(0,0,0,0.05)]">
+                            <Typography variant="subtitle1" fontWeight="600" className="text-gray-700 mb-2">✍️ Question</Typography>
+                            <TextareaAutosize
                                 className="w-full outline-0 p-2 rounded-lg"
                                 value={currentQuestion}
                                 onChange={(e) => setCurrentQuestion(e.target.value)}
                                 placeholder="Type your quiz question here..."
                             />
-                            <MUI.Divider className="my-6" />
-                            <MUI.Typography variant="subtitle1" fontWeight="600" className="text-gray-700 p-3">📝 Options (Click radio to select correct)</MUI.Typography>
+                            <Divider className="my-6" />
+                            <Typography variant="subtitle1" fontWeight="600" className="text-gray-700 p-3">📝 Options (Click radio to select correct)</Typography>
 
-                            <MUI.Box className="flex flex-col gap-2">
+                            <Box className="flex flex-col gap-2">
                                 {options.map((opt, i) => (
-                                    <MUI.Card
+                                    <Card
                                         key={i}
                                         elevation={0}
                                         className={`flex items-center gap-3 p-2 rounded-xl bg-white/70 shadow-md hover:shadow-md ${correctIndex === i ? "ring-2 ring-blue-400 bg-blue-50" : ""}`}
                                     >
                                         <input type="radio" name="correct" checked={correctIndex === i} onChange={() => setCorrectIndex(i)} className="w-5 h-5 cursor-pointer accent-blue-600" />
-                                        <MUI.TextField fullWidth placeholder={`Option ${i + 1}`} value={opt} onChange={(e) => handleOptionChange(i, e.target.value)} size="small" InputProps={{ className: "bg-transparent" }} />
+                                        <TextField fullWidth placeholder={`Option ${i + 1}`} value={opt} onChange={(e) => handleOptionChange(i, e.target.value)} size="small" InputProps={{ className: "bg-transparent" }} />
                                         {options.length > 2 && (
-                                            <MUI.IconButton color="error" onClick={() => removeOption(i)}>
+                                            <IconButton color="error" onClick={() => removeOption(i)}>
                                                 <DeleteIcon />
-                                            </MUI.IconButton>
+                                            </IconButton>
                                         )}
-                                    </MUI.Card>
+                                    </Card>
                                 ))}
-                            </MUI.Box>
+                            </Box>
 
                             {options.length < 4 && (
-                                <MUI.Box className="flex justify-center mt-3">
-                                    <MUI.Button startIcon={<AddIcon />} onClick={addOptionField} className="rounded-full px-4" variant="outlined" color="primary">
+                                <Box className="flex justify-center mt-3">
+                                    <Button startIcon={<AddIcon />} onClick={addOptionField} className="rounded-full px-4" variant="outlined" color="primary">
                                         Add Option
-                                    </MUI.Button>
-                                </MUI.Box>
+                                    </Button>
+                                </Box>
                             )}
-                        </MUI.Box>
+                        </Box>
 
-                        <MUI.Box className="flex justify-end mb-6">
-                            <MUI.Button onClick={handleAddQuestion} variant="contained" size="large" className="rounded-full px-8 py-2 shadow-lg shadow-blue-300">
+                        <Box className="flex justify-end mb-6">
+                            <Button onClick={handleAddQuestion} variant="contained" size="large" className="rounded-full px-8 py-2 shadow-lg shadow-blue-300">
                                 Add Question
-                            </MUI.Button>
-                        </MUI.Box>
+                            </Button>
+                        </Box>
 
                         {questions.length > 0 && (
-                            <MUI.Box className="mt-14">
-                                <MUI.Typography variant="h5" fontWeight="700" className="text-gray-900 text-center mb-6">📚 Added Questions</MUI.Typography>
-                                <MUI.Box className="flex flex-col gap-6 mt-6">
+                            <Box className="mt-14">
+                                <Typography variant="h5" fontWeight="700" className="text-gray-900 text-center mb-6">📚 Added Questions</Typography>
+                                <Box className="flex flex-col gap-6 mt-6">
                                     {questions.map((q, index) => (
                                         <motion.div key={index} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }}>
-                                            <MUI.Box className="p-6 sm:p-8 rounded-3xl bg-white/90 backdrop-blur-md shadow-lg hover:shadow-2xl transition-all border border-gray-200">
-                                                <MUI.Typography style={{ fontSize: "18px" }} fontWeight="700" className="text-gray-900">
+                                            <Box className="p-6 sm:p-8 rounded-3xl bg-white/90 backdrop-blur-md shadow-lg hover:shadow-2xl transition-all border border-gray-200">
+                                                <Typography style={{ fontSize: "18px" }} fontWeight="700" className="text-gray-900">
                                                     {index + 1}. {q.question}
-                                                </MUI.Typography>
+                                                </Typography>
                                                 <ul className="flex flex-col gap-3 mt-5">
                                                     {q.options.map((opt, i) => (
                                                         <li key={i} className={`flex items-center gap-3 p-3 rounded-xl ${i === q.correctIndex ? "bg-green-50 text-green-700 font-semibold ring-1 ring-green-300" : "bg-gray-200 text-gray-800"} transition-all`}>
@@ -240,26 +267,26 @@ const CreateQuiz = () => {
                                                         </li>
                                                     ))}
                                                 </ul>
-                                            </MUI.Box>
+                                            </Box>
                                         </motion.div>
                                     ))}
-                                </MUI.Box>
-                            </MUI.Box>
+                                </Box>
+                            </Box>
                         )}
                     </>
                 )}
 
-                <MUI.Dialog open={warningOpen} TransitionComponent={Transition} keepMounted onClose={() => setWarningOpen(false)}>
-                    <MUI.DialogTitle sx={{ fontWeight: "bold" }}>⚠️ Incomplete Fields</MUI.DialogTitle>
-                    <MUI.DialogContent>
-                        <MUI.Typography>Please fill in all required fields and options.</MUI.Typography>
-                    </MUI.DialogContent>
-                    <MUI.DialogActions>
-                        <MUI.Button onClick={() => setWarningOpen(false)} variant="contained" color="primary">OK</MUI.Button>
-                    </MUI.DialogActions>
-                </MUI.Dialog>
-            </MUI.Box>
-        </MUI.Box>
+                <Dialog open={warningOpen} TransitionComponent={Transition} keepMounted onClose={() => setWarningOpen(false)}>
+                    <DialogTitle sx={{ fontWeight: "bold" }}>⚠️ Incomplete Fields</DialogTitle>
+                    <DialogContent>
+                        <Typography>Please fill in all required fields and options.</Typography>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={() => setWarningOpen(false)} variant="contained" color="primary">OK</Button>
+                    </DialogActions>
+                </Dialog>
+            </Box>
+        </Box>
     );
 };
 
