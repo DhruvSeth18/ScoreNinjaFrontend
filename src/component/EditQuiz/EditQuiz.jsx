@@ -27,8 +27,11 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import ShareIcon from "@mui/icons-material/Share";
 import { motion } from "framer-motion";
 import QRCode from "react-qr-code";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 import { GetQuizById, addQuestionAPI, DeleteQuestion, UpdateQuiz } from "../../api/api";
 import { useParams } from "react-router-dom";
+import { deleteQuiz } from "../../api/api";
+import { useNavigate } from "react-router-dom";
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="down" ref={ref} {...props} />;
@@ -54,13 +57,20 @@ const EditQuiz = () => {
   const [correctIndex, setCorrectIndex] = useState(null);
   const [warningOpen, setWarningOpen] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
-  const shareLink = window.location.href;
+  const shareLink = `${window.location.origin}/quiz/${quizId}/wait`;
+  const [excelDialogOpen, setExcelDialogOpen] = useState(false);
+  const openExcelDialog = () => setExcelDialogOpen(true);
+  const closeExcelDialog = () => setExcelDialogOpen(false);
   const passingOptions = [10, 20, 30, 40, 50, 60, 70];
+
 
   // Snackbar state
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMsg, setSnackbarMsg] = useState("");
   const [snackbarSeverity, setSnackbarSeverity] = useState("info");
+
+
+  const navigate = useNavigate();
 
   const openSnackbar = (msg, severity = "info") => {
     setSnackbarMsg(msg);
@@ -97,6 +107,26 @@ const EditQuiz = () => {
     fetchQuiz();
   }, [quizId]);
 
+  const handleDeleteQuiz = async () => {
+    if (!window.confirm("Are you sure you want to delete this quiz? This action cannot be undone.")) return;
+
+    try {
+      const result = await deleteQuiz(quizId);
+      if (result.status) {
+        openSnackbar(result.message, "success");
+        // Optionally, redirect after deletion
+        setTimeout(() => {
+          window.location.href = "/quiz/created"; // redirect to home or quiz list
+        }, 1000);
+      } else {
+        openSnackbar(result.message || "Failed to delete quiz", "error");
+      }
+    } catch (error) {
+      openSnackbar("Error deleting quiz", "error");
+    }
+  };
+
+
   const handleChange = (e) =>
     setFormData((p) => ({ ...p, [e.target.name]: e.target.value }));
 
@@ -122,6 +152,10 @@ const EditQuiz = () => {
     n[i] = v;
     setOptions(n);
   };
+  const handleCopyLink = async () => {
+    await navigator.clipboard.writeText(shareLink);
+  };
+
 
   const removeOption = (i) => {
     const n = options.filter((_, idx) => idx !== i);
@@ -198,6 +232,10 @@ const EditQuiz = () => {
     window.open(url, "_blank");
   };
 
+  const handleViewParticipants = () => {
+    navigate(`/quiz/${quizId}/participants`);
+  }
+
   return (
     <Box className="w-full min-h-screen scrollbar-none bg-gray-50 md:p-[100px]">
       <Box className="px-8 py-10 max-w-5xl mx-auto relative">
@@ -239,14 +277,70 @@ const EditQuiz = () => {
         </Box>
 
         {/* Buttons */}
+        {/* Buttons */}
         <Box className="flex gap-4 mb-6">
-          <Button variant="contained" color="primary" size="large" className="rounded-full px-8 py-3" onClick={handleEditQuiz}>
+          <Button
+            variant="contained"
+            color="primary"
+            size="large"
+            className="rounded-full px-8 py-3"
+            onClick={handleEditQuiz}
+          >
             Submit Quiz
           </Button>
-          <Button variant="outlined" color="secondary" size="large" startIcon={<ShareIcon />} onClick={openShareDialog}>
+
+          {/* Share Button */}
+          <Button
+            variant="outlined"
+            color="secondary"
+            size="large"
+            startIcon={<ShareIcon />}
+            onClick={openShareDialog}
+          >
             Share
           </Button>
+
+          {/* Delete Quiz Button */}
+          <Button
+            variant="outlined"
+            color="error"
+            size="large"
+            onClick={handleDeleteQuiz}
+          >
+            Delete
+          </Button>
+
+          {/* View Participants Button */}
+          <Button
+            variant="outlined"
+            color="success"
+            size="large"
+            onClick={handleViewParticipants} // 👈 add this function
+          >
+            View Participants
+          </Button>
+
+          {/* Excel Import Button */}
+          <Button
+            variant="outlined"
+            color="info"
+            size="large"
+            onClick={openExcelDialog}
+          >
+            Import Excel
+          </Button>
+
+          {/* Hidden File Input */}
+          <input
+            type="file"
+            id="excelInput"
+            accept=".xlsx, .xls"
+            style={{ display: "none" }}
+          // onChange={handleExcelImport}
+          />
         </Box>
+
+
 
         {/* Questions Section */}
         <Typography className="mb-4 h-[50px] text-gray-700 font-medium">
@@ -267,9 +361,8 @@ const EditQuiz = () => {
               <Card
                 key={i}
                 elevation={0}
-                className={`flex items-center gap-3 p-2 rounded-xl bg-white/70 shadow-md hover:shadow-md ${
-                  correctIndex === i ? "ring-2 ring-blue-400 bg-blue-50" : ""
-                }`}
+                className={`flex items-center gap-3 p-2 rounded-xl bg-white/70 shadow-md hover:shadow-md ${correctIndex === i ? "ring-2 ring-blue-400 bg-blue-50" : ""
+                  }`}
               >
                 <input type="radio" name="correct" checked={correctIndex === i} onChange={() => setCorrectIndex(i)} className="w-5 h-5 cursor-pointer accent-blue-600" />
                 <TextField fullWidth placeholder={`Option ${i + 1}`} value={opt} onChange={(e) => handleOptionChange(i, e.target.value)} size="small" />
@@ -319,9 +412,8 @@ const EditQuiz = () => {
                       {q.options.map((opt, i) => (
                         <li
                           key={i}
-                          className={`flex items-center gap-3 p-3 rounded-xl ${
-                            opt === q.correctOption ? "bg-green-50 text-green-700 font-semibold ring-1 ring-green-300" : "bg-gray-200 text-gray-800"
-                          }`}
+                          className={`flex items-center gap-3 p-3 rounded-xl ${opt === q.correctOption ? "bg-green-50 text-green-700 font-semibold ring-1 ring-green-300" : "bg-gray-200 text-gray-800"
+                            }`}
                         >
                           {opt === q.correctOption && <CheckCircleIcon fontSize="small" color="success" />}
                           <span>{opt}</span>
@@ -338,8 +430,24 @@ const EditQuiz = () => {
         {/* Share Dialog */}
         <Dialog open={shareOpen} TransitionComponent={Transition} keepMounted onClose={closeShareDialog}>
           <DialogTitle sx={{ fontWeight: "bold" }}>🔗 Share Quiz</DialogTitle>
+
           <DialogContent className="flex flex-col items-center gap-4">
             <QRCode value={shareLink} size={200} />
+
+            {/* COPY LINK FIELD (ADDED) */}
+            <TextField
+              fullWidth
+              value={shareLink}
+              InputProps={{
+                readOnly: true,
+                endAdornment: (
+                  <IconButton onClick={handleCopyLink}>
+                    <ContentCopyIcon />
+                  </IconButton>
+                ),
+              }}
+            />
+
             <Box className="flex gap-3 mt-4">
               <Button variant="contained" color="success" onClick={() => shareTo("whatsapp")}>
                 WhatsApp
@@ -352,12 +460,14 @@ const EditQuiz = () => {
               </Button>
             </Box>
           </DialogContent>
+
           <DialogActions>
             <Button onClick={closeShareDialog} variant="contained">
               Close
             </Button>
           </DialogActions>
         </Dialog>
+
 
         {/* Warning Dialog */}
         <Dialog open={warningOpen} TransitionComponent={Transition} keepMounted onClose={() => setWarningOpen(false)}>
@@ -368,6 +478,34 @@ const EditQuiz = () => {
           <DialogActions>
             <Button onClick={() => setWarningOpen(false)} variant="contained" color="primary">
               OK
+            </Button>
+          </DialogActions>
+        </Dialog>
+        <Dialog open={excelDialogOpen} onClose={closeExcelDialog} maxWidth="sm" fullWidth>
+          <DialogTitle>📑 Excel Import Rules</DialogTitle>
+          <DialogContent>
+            <Typography mb={2}>
+              Please format your Excel file as follows:
+            </Typography>
+            <ul>
+              <li>1st Column → Question</li>
+              <li>Next 2–4 Columns → Options (at least 2 options must be filled)</li>
+              <li>5th Column → Correct Answer (must match one of the options)</li>
+            </ul>
+            <Typography color="textSecondary" mt={2}>
+              Example:
+            </Typography>
+            <Box component="pre" sx={{ backgroundColor: "#f5f5f5", p: 2, borderRadius: 1 }}>
+              Question | Option1 | Option2 | Option3 | Option4 | CorrectOption
+              {"\n"}What is 2+2? | 3 | 4 | 5 |  | 4
+            </Box>
+          </DialogContent>
+          <DialogActions>
+            <Button variant="contained" onClick={() => {
+              closeExcelDialog();
+              document.getElementById("excelInput").click(); // open file selector after closing dialog
+            }}>
+              OK, Got it
             </Button>
           </DialogActions>
         </Dialog>

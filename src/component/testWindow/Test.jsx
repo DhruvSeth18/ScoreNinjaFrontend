@@ -12,6 +12,11 @@ const Test = () => {
     const [apiData, setApiData] = useState(null);
     const [showLoader, setShowLoader] = useState(true);
 
+    // 🔥 LIFTED STATE
+    const [submittedAnswers, setSubmittedAnswers] = useState({});
+    const [selectedIndex, setSelectedIndex] = useState(0); // current question
+    const [showOverview, setShowOverview] = useState(false); // Home icon modal
+
     useEffect(() => {
         const init = async () => {
             try {
@@ -28,7 +33,7 @@ const Test = () => {
 
         init();
 
-        // ⏳ FORCE 2 sec loader (UI already loading in background)
+        // ⏳ FORCE 2 sec loader
         const timer = setTimeout(() => {
             setShowLoader(false);
         }, 2000);
@@ -38,8 +43,7 @@ const Test = () => {
 
     return (
         <Box sx={{ position: "relative", minHeight: "100vh" }}>
-            
-            {/* 🔵 FULL SCREEN LOADER OVERLAY */}
+            {/* 🔵 FULL SCREEN LOADER */}
             {showLoader && (
                 <Box
                     sx={{
@@ -56,9 +60,25 @@ const Test = () => {
                 </Box>
             )}
 
-            {/* ✅ UI IS ALREADY LOADED BEHIND */}
-            <TestNavbar apiData={apiData} />
-            <TestWindow quizAttempt={apiData?.attempt} />
+            {/* ✅ NAVBAR WITH LIVE ATTEMPT COUNT + Home Icon Modal */}
+            <TestNavbar
+                apiData={apiData}
+                attemptedCount={Object.keys(submittedAnswers).length}
+                selectedIndex={selectedIndex}
+                setSelectedIndex={setSelectedIndex}
+                showOverview={showOverview}
+                setShowOverview={setShowOverview}
+                submittedAnswers={submittedAnswers}
+            />
+
+            {/* ✅ TEST WINDOW */}
+            <TestWindow
+                quizAttempt={apiData?.attempt}
+                submittedAnswers={submittedAnswers}
+                setSubmittedAnswers={setSubmittedAnswers}
+                selectedIndex={selectedIndex}
+                setSelectedIndex={setSelectedIndex}
+            />
         </Box>
     );
 };

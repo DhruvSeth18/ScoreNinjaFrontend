@@ -99,7 +99,7 @@ const CreatedQuizzes = () => {
 
     const getQuizStatus = (quiz) => {
         const quizEnd = dayjs(`${quiz.date} ${quiz.endTime}`, 'YYYY-MM-DD hh:mm A [IST]');
-        return quizEnd.isBefore(now) ? 'Over' : 'Upcoming';
+        return quizEnd.isBefore(now) ? 'Over' : 'On Going Exam';
     };
 
     if (loading) {

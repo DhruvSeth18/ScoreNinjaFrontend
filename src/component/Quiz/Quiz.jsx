@@ -19,6 +19,7 @@ import CreateQuiz from '../CreateQuiz/CreateQuiz';
 import CreatedQuizzes from '../CreatedQuizzes/CreatedQuizzes';
 import AttemptedQuizzes from '../AttemptedQuizzes/AttemptedQuizzes';
 import EditQuiz from '../EditQuiz/EditQuiz';
+import QuizParticipants from '../QuizParticipants/QuizParticipants';
 
 function PreviousQuestions() { return <div>Previous Questions Page</div>; }
 
@@ -97,6 +98,7 @@ function Layout(props) {
                     <Route path="created" element={<CreatedQuizzes />} />
                     <Route path="attempted/quizzes" element={<AttemptedQuizzes />} />
                     <Route path=":quizId/edit" element={<EditQuiz />} />
+                    <Route path=":quizId/participants" element={<QuizParticipants/>}></Route>
                 </Routes>
             </Box>
         </Box>

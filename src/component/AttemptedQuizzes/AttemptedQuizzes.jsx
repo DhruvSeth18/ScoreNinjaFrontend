@@ -1,14 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { Box, Card, CardContent, Typography, Divider, IconButton, Button, Stack, LinearProgress, Snackbar, Alert as MuiAlert } from '@mui/material';
+import {
+    Box,
+    Card,
+    CardContent,
+    Typography,
+    Divider,
+    IconButton,
+    Chip,
+    Snackbar,
+    Alert as MuiAlert,
+    Button,
+    Stack,
+    LinearProgress
+} from '@mui/material';
 import ArrowForwardIosIcon from '@mui/icons-material/ArrowForwardIos';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import { useNavigate } from 'react-router-dom';
-import { getAllUserQuizzes } from '../../api/api';
+import dayjs from 'dayjs';
+import { getAttemptedQuizzes } from '../../api/api';
 
-const AttemptedQuizzes = ({ userId }) => { 
+const AttemptedQuizzes = () => {
     const navigate = useNavigate();
+
     const [quizzes, setQuizzes] = useState([]);
+    const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [snackbarOpen, setSnackbarOpen] = useState(false);
     const [snackbarMsg, setSnackbarMsg] = useState('');
@@ -25,37 +41,62 @@ const AttemptedQuizzes = ({ userId }) => {
         setSnackbarOpen(false);
     };
 
-    // Fetch quizzes with fake delay
-    const fetchQuizzes = async () => {
-        setRefreshing(true);
+    // Fetch with minimum 1s delay
+    const fetchQuizzes = async ({ initial = false } = {}) => {
+        if (initial) setLoading(true);
+        else setRefreshing(true);
+
+        const minDelay = 1000;
+        const startTime = Date.now();
+
         try {
-            const res = await getAllUserQuizzes(userId);
+            const res = await getAttemptedQuizzes();
 
-            // Fake delay of 1 second
-            setTimeout(() => {
-                if (res.status) {
-                    setQuizzes(res.attemptedQuizzes);
-                    openSnackbar('Quizzes loaded successfully', 'success');
-                } else {
-                    openSnackbar(res.message || 'Failed to load quizzes', 'error');
-                }
-                setRefreshing(false);
-            }, 1000); // 1000ms = 1 second delay
+            const elapsed = Date.now() - startTime;
+            const remaining = minDelay - elapsed > 0 ? minDelay - elapsed : 0;
+            await new Promise(resolve => setTimeout(resolve, remaining));
 
+            if (res?.status) {
+                setQuizzes(res.attempts || []);
+                if (!initial)
+                    openSnackbar(
+                        res.attempts?.length
+                            ? `Loaded ${res.attempts.length} quiz${res.attempts.length > 1 ? 'zes' : ''}.`
+                            : 'No attempted quizzes found.',
+                        'success'
+                    );
+            } else {
+                openSnackbar(res?.message || 'Failed to load quizzes', 'error');
+            }
         } catch (err) {
-            setTimeout(() => {
-                openSnackbar('Something went wrong while fetching quizzes', 'error');
-                setRefreshing(false);
-            }, 1000);
+            openSnackbar('Something went wrong while fetching quizzes', 'error');
+        } finally {
+            setLoading(false);
+            setRefreshing(false);
         }
     };
 
     useEffect(() => {
-        fetchQuizzes();
-    }, [userId]);
+        fetchQuizzes({ initial: true });
+    }, []);
+
+    const handleRedirect = (attempt) => {
+        if (attempt.status === 'REGISTERED' || attempt.status === 'IN_PROGRESS') {
+            navigate(`/quiz/${attempt.quizId}/wait`);
+        }
+    };
+
+    if (loading) {
+        return (
+            <Box className="flex justify-center items-center h-[80vh]">
+                <Typography variant="h6">Loading attempted quizzes...</Typography>
+            </Box>
+        );
+    }
 
     return (
-        <Box className='pt-[130px]'
+        <Box
+            className="pt-[130px]"
             sx={{
                 display: 'flex',
                 flexDirection: 'column',
@@ -68,44 +109,68 @@ const AttemptedQuizzes = ({ userId }) => {
             }}
         >
             {/* Header */}
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} alignItems="center" justifyContent="space-between" sx={{ width: '90%', maxWidth: 900 }}>
+            <Stack
+                direction={{ xs: 'column', md: 'row' }}
+                spacing={2}
+                alignItems="center"
+                justifyContent="space-between"
+                sx={{ width: '90%', maxWidth: 900 }}
+            >
                 <Typography
                     variant="h4"
                     fontWeight="bold"
-                    sx={{ 
-                        textAlign: { xs: 'center', md: 'left' },
+                    sx={{
                         background: 'linear-gradient(90deg, #4b6cb7, #182848)',
                         WebkitBackgroundClip: 'text',
-                        WebkitTextFillColor: 'transparent'
+                        WebkitTextFillColor: 'transparent',
                     }}
                 >
                     ✅ Attempted Quizzes
                 </Typography>
 
                 <Stack direction="row" spacing={1}>
-                    <Button variant="outlined" startIcon={<ArrowBackIcon />} onClick={() => navigate(-1)} sx={{ borderRadius: 2 }}>
+                    <Button
+                        variant="outlined"
+                        startIcon={<ArrowBackIcon />}
+                        onClick={() => navigate(-1)}
+                        sx={{ borderRadius: 2 }}
+                    >
                         Back
                     </Button>
-                    <Button variant="outlined" startIcon={<RefreshIcon />} onClick={fetchQuizzes} disabled={refreshing} sx={{ borderRadius: 2 }}>
+                    <Button
+                        variant="outlined"
+                        startIcon={<RefreshIcon />}
+                        onClick={() => fetchQuizzes({ initial: false })}
+                        disabled={refreshing}
+                        sx={{ borderRadius: 2 }}
+                    >
                         {refreshing ? 'Refreshing…' : 'Refresh'}
                     </Button>
                 </Stack>
             </Stack>
 
-            {/* Loading Indicator */}
-            {refreshing && <LinearProgress sx={{ width: '90%', maxWidth: 900, borderRadius: 999 }} />}
+            {refreshing && (
+                <LinearProgress sx={{ width: '90%', maxWidth: 900, borderRadius: 999 }} />
+            )}
 
-            {/* Cards or No quizzes message */}
-            {quizzes.length === 0 && !refreshing ? (
-                <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1, minHeight: '200px' }}>
-                    <Typography variant="h6" color="text.secondary" sx={{ textAlign: 'center' }}>
+            {quizzes.length === 0 ? (
+                <Box
+                    sx={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        alignItems: 'center',
+                        height: '60vh',
+                        width: '100%',
+                    }}
+                >
+                    <Typography variant="h6" color="text.secondary">
                         No attempted quizzes found.
                     </Typography>
                 </Box>
             ) : (
-                quizzes.map((quiz) => (
+                quizzes.map((attempt) => (
                     <Card
-                        key={quiz.id}
+                        key={attempt.id}
                         sx={{
                             width: '90%',
                             maxWidth: 900,
@@ -113,54 +178,76 @@ const AttemptedQuizzes = ({ userId }) => {
                             p: 1.5,
                             boxShadow: 4,
                             position: 'relative',
-                            cursor: 'pointer',
                             background: 'rgba(255,255,255,0.85)',
                             backdropFilter: 'blur(6px)',
-                            transition: 'transform 0.2s, box-shadow 0.2s',
-                            '&:hover': {
-                                transform: 'scale(1.015)',
-                                boxShadow: 6,
-                            },
+                            cursor:
+                                attempt.status === 'REGISTERED' || attempt.status === 'IN_PROGRESS'
+                                    ? 'pointer'
+                                    : 'default',
                         }}
                     >
-                        <CardContent sx={{ pt: 2, pb: 2 }}>
-                            <Typography variant="h5" fontWeight="bold" gutterBottom>{quiz.title}</Typography>
-                            <Typography variant="body2" color="text.secondary" mb={1}>{quiz.description}</Typography>
-                            <Divider className='hidden md:block' sx={{ my: 1 }} />
-
-                            <Box sx={{ display: 'flex', gap: 1, mt: 1, flexWrap: 'wrap', color: 'text.secondary', fontSize: '0.875rem' }}>
-                                <Typography>{quiz.date}</Typography>
-                                <Typography>|</Typography>
-                                <Typography>{quiz.startTime}</Typography>
-                                <Typography>|</Typography>
-                                <Typography>{quiz.endTime}</Typography>
-                            </Box>
-
-                            <Typography variant="body2" color="text.secondary" mt={1}>Total Questions: {quiz.totalQuestions}</Typography>
-                            <Typography variant="body2" color="primary" mt={0.5}>Score: {quiz.score}</Typography>
-
-                            <IconButton
-                                onClick={() => navigate(`/quiz/${quiz.id}/view`)}
+                        <CardContent onClick={() => handleRedirect(attempt)}>
+                            <Box
                                 sx={{
-                                    position: 'absolute',
-                                    top: '50%',
-                                    right: 24,
-                                    transform: 'translateY(-50%)',
-                                    bgcolor: 'primary.main',
-                                    color: 'white',
-                                    '&:hover': { bgcolor: 'primary.dark', transform: 'translateY(-50%) scale(1.05)' },
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    alignItems: 'center',
                                 }}
                             >
-                                <ArrowForwardIosIcon />
-                            </IconButton>
+                                <Typography variant="h5" fontWeight="bold">
+                                    Quiz Attempt
+                                </Typography>
+                                <Chip
+                                    label={attempt.status}
+                                    color={attempt.status === 'COMPLETED' ? 'success' : 'warning'}
+                                    size="small"
+                                    sx={{ fontWeight: 'bold' }}
+                                />
+                            </Box>
+
+                            <Divider sx={{ my: 1 }} />
+
+                            <Typography variant="body2" color="text.secondary">
+                                Date: {dayjs(attempt.createdAt).format('DD MMM YYYY')}
+                            </Typography>
+
+                            <Typography variant="body2" mt={0.5}>
+                                Score: <strong>{attempt.marksObtained}</strong> / {attempt.numberOfQuestion}
+                            </Typography>
+
+                            <Typography variant="body2" color="primary">
+                                Percentage: <strong>{attempt.percentage}%</strong>
+                            </Typography>
+
+                            <Typography
+                                variant="body2"
+                                mt={0.5}
+                                color={attempt.result === 'PASS' ? 'green' : 'error'}
+                            >
+                                Result: <strong>{attempt.result}</strong>
+                            </Typography>
+
+                            {(attempt.status === 'REGISTERED' || attempt.status === 'IN_PROGRESS') && (
+                                <IconButton
+                                    sx={{
+                                        position: 'absolute',
+                                        top: '50%',
+                                        right: 24,
+                                        transform: 'translateY(-50%)',
+                                        bgcolor: 'primary.main',
+                                        color: 'white',
+                                    }}
+                                >
+                                    <ArrowForwardIosIcon />
+                                </IconButton>
+                            )}
                         </CardContent>
                     </Card>
                 ))
             )}
 
-            {/* Snackbar */}
-            <Snackbar open={snackbarOpen} autoHideDuration={3000} onClose={handleSnackbarClose} anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}>
-                <MuiAlert onClose={handleSnackbarClose} severity={snackbarSeverity} elevation={6} variant="filled">
+            <Snackbar open={snackbarOpen} autoHideDuration={3000} onClose={handleSnackbarClose}>
+                <MuiAlert severity={snackbarSeverity} elevation={6} variant="filled">
                     {snackbarMsg}
                 </MuiAlert>
             </Snackbar>
