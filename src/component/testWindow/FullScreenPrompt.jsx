@@ -1,208 +1,228 @@
-import React, { useEffect, useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
-    AppBar,
-    Toolbar,
-    Container,
-    Typography,
-    Avatar,
     Dialog,
     DialogTitle,
     DialogContent,
     DialogActions,
     Button,
     Box,
-    Alert
+    Typography
 } from "@mui/material";
-import HomeIcon from "@mui/icons-material/Home";
+import { useNavigate } from "react-router-dom";
+import { submitQuiz, addDisturbance } from "../../api/api";
 
-const TestNavbar = ({ apiData }) => {
+const MAX_DISTURBANCE = 3;
 
-    /* ================= API EMPTY CHECK ================= */
-    const isApiEmpty = !apiData || Object.keys(apiData).length === 0;
+const FullScreenPrompt = ({ quizId, attemptId, initialDisturbance = 0 }) => {
+    const [open, setOpen] = useState(false);
+    const [warningOpen, setWarningOpen] = useState(false);
+    const [timer, setTimer] = useState(20);
+    const [disturbanceCount, setDisturbanceCount] = useState(initialDisturbance);
+    const [lastViolation, setLastViolation] = useState("");
 
-    if (isApiEmpty) {
-        return (
-            <Dialog
-                open
-                disableEscapeKeyDown
-                onClose={() => {}}
-                maxWidth="sm"
-                fullWidth
-            >
-                <Box
-                    sx={{
-                        p: 4,
-                        textAlign: "center"
-                    }}
-                >
-                    <DialogTitle
-                        sx={{
-                            fontSize: "24px",
-                            fontWeight: "bold",
-                            textAlign: "center"
-                        }}
-                    >
-                        Quiz Loading Failed
-                    </DialogTitle>
+    const navigate = useNavigate();
+    const isSubmittingRef = useRef(false);
 
-                    <DialogContent sx={{ mt: 1 }}>
-                        <Alert
-                            severity="error"
-                            sx={{
-                                mb: 3,
-                                fontSize: "16px",
-                                justifyContent: "center"
-                            }}
-                        >
-                            Unable to fetch quiz data
-                        </Alert>
+    /* ---------------- HELPER: RECORD DISTURBANCE ---------------- */
+    const recordDisturbance = async (violationText) => {
+        setLastViolation(violationText);
+        setWarningOpen(true);
 
-                        <Typography
-                            sx={{
-                                fontSize: "16px",
-                                mb: 1,
-                                textAlign: "center"
-                            }}
-                        >
-                            Your quiz session could not be restored.
-                        </Typography>
+        // ⚡ Optimistic UI update
+        setDisturbanceCount(prev => prev + 1);
 
-                        <Typography
-                            sx={{
-                                fontSize: "15px",
-                                fontWeight: "bold",
-                                color: "error.main",
-                                textAlign: "center"
-                            }}
-                        >
-                            Please refresh the page to continue safely.
-                        </Typography>
-                    </DialogContent>
+        try {
+            const res = await addDisturbance(attemptId);
 
-                    <DialogActions sx={{ justifyContent: "center", mt: 2 }}>
-                        <Button
-                            variant="contained"
-                            color="error"
-                            size="large"
-                            sx={{
-                                px: 6,
-                                py: 1.2,
-                                fontSize: "16px",
-                                borderRadius: "8px"
-                            }}
-                            onClick={() => window.location.reload()}
-                        >
-                            Refresh Page
-                        </Button>
-                    </DialogActions>
-                </Box>
-            </Dialog>
-        );
-    }
-
-    /* ================= NORMAL NAVBAR ================= */
-
-    const attempt = apiData?.attempt;
-    const user = apiData?.user;
-
-    const totalQuestions = attempt?.shuffledQuestions?.length || 0;
-    const attemptedCount =
-        attempt?.attemptedQuestions?.filter(q => q.selectedOption !== null).length || 0;
-
-    const [timeLeft, setTimeLeft] = useState(0);
-
-    useEffect(() => {
-        if (!attempt?.quizStartTime || !attempt?.endTime) {
-            setTimeLeft(0);
-            return;
+            if (res.status) {
+                setDisturbanceCount(res.totalDisturbance); // sync backend count
+                if (res.endQuiz && !isSubmittingRef.current) {
+                    isSubmittingRef.current = true;
+                    await submitQuiz(quizId);
+                    navigate("/quiz/attempted/quizzes", { replace: true });
+                }
+            }
+        } catch (err) {
+            console.error("Disturbance API error:", err);
+            // optional: revert UI if API failed
+            setDisturbanceCount(prev => prev - 1);
         }
+    };
 
-        const end = new Date(attempt.quizStartTime);
-        const [h, m] = attempt.endTime.split(":");
-        end.setHours(parseInt(h), parseInt(m), 0);
+    /* ---------------- FULLSCREEN DETECTION ---------------- */
+    useEffect(() => {
+        let firstCheck = true; // 👈 skip initial fullscreen check
+
+        const checkFullScreen = () => {
+            if (!document.fullscreenElement) {
+                if (!firstCheck) {
+                    recordDisturbance("Exited fullscreen!");
+                } else {
+                    firstCheck = false;
+                }
+                setOpen(true);
+                setTimer(20);
+            }
+        };
+
+        document.addEventListener("fullscreenchange", checkFullScreen);
+        checkFullScreen();
+
+        return () =>
+            document.removeEventListener("fullscreenchange", checkFullScreen);
+    }, []);
+
+    /* ---------------- TIMER ---------------- */
+    useEffect(() => {
+        if (!open || timer <= 0) return;
 
         const interval = setInterval(() => {
-            const diff = Math.max(0, Math.floor((end - new Date()) / 1000));
-            setTimeLeft(diff);
+            setTimer((prev) => prev - 1);
         }, 1000);
 
         return () => clearInterval(interval);
-    }, [attempt]);
+    }, [open, timer]);
 
-    const formatTime = (seconds) => {
-        if (!seconds || isNaN(seconds) || seconds <= 0) return "0:00";
-        const min = Math.floor(seconds / 60);
-        const sec = seconds % 60;
-        return `${min}:${sec < 10 ? "0" : ""}${sec}`;
+    /* ---------------- WINDOW BLUR ---------------- */
+    useEffect(() => {
+        const handleBlur = () => {
+            recordDisturbance("Switching windows is not allowed!");
+        };
+
+        window.addEventListener("blur", handleBlur);
+        return () => window.removeEventListener("blur", handleBlur);
+    }, []);
+
+    /* ---------------- KEYBOARD DETECTION ---------------- */
+    const detectSuspiciousKeys = (event) => {
+        const forbidden = {
+            "Control+c": "Copy is not allowed",
+            "Control+v": "Paste is not allowed",
+            "Control+x": "Cut is not allowed",
+            "Alt+Tab": "Switching tabs is not allowed",
+            "Control+Shift+I": "DevTools not allowed",
+            "Control+Shift+J": "DevTools not allowed",
+            "F12": "DevTools not allowed"
+        };
+
+        let combo = event.key;
+        if (event.ctrlKey) combo = `Control+${combo}`;
+        if (event.altKey) combo = `Alt+${combo}`;
+        if (event.shiftKey) combo = `Shift+${combo}`;
+
+        if (forbidden[combo]) {
+            event.preventDefault();
+            recordDisturbance(forbidden[combo]);
+        }
+    };
+
+    useEffect(() => {
+        document.addEventListener("keydown", detectSuspiciousKeys);
+        return () =>
+            document.removeEventListener("keydown", detectSuspiciousKeys);
+    }, []);
+
+    /* ---------------- AUTO SUBMIT ON MAX DISTURBANCE OR TIMER ---------------- */
+    useEffect(() => {
+        if ((disturbanceCount >= MAX_DISTURBANCE || timer <= 0) && !isSubmittingRef.current) {
+            isSubmittingRef.current = true;
+
+            (async () => {
+                try {
+                    await submitQuiz(quizId);
+                } finally {
+                    setOpen(false);
+                    setWarningOpen(false);
+                    navigate("/quiz/attempted/quizzes", { replace: true });
+                }
+            })();
+        }
+    }, [disturbanceCount, timer, quizId, navigate]);
+
+    /* ---------------- ENTER FULLSCREEN ---------------- */
+    const requestFullScreen = () => {
+        document.documentElement.requestFullscreen();
+        setOpen(false);
     };
 
     return (
-        <AppBar
-            position="fixed"
-            sx={{
-                backgroundColor: "white",
-                height: "60px",
-                boxShadow: "0px 2px 10px rgba(0,0,0,0.2)"
-            }}
-        >
-            <Container maxWidth="xl">
-                <Toolbar sx={{ position: "relative", height: "60px" }}>
+        <>
+            {/* FULLSCREEN DIALOG */}
+            <Dialog open={open} disableEscapeKeyDown>
+                <Box sx={{ width: 420, p: 3, textAlign: "center" }}>
+                    <DialogTitle sx={{ fontWeight: "bold" }}>Full Screen Required</DialogTitle>
 
-                    <HomeIcon
-                        sx={{
-                            position: "absolute",
-                            left: "10px",
-                            fontSize: "36px",
-                            color: "#1976d2",
-                            cursor: "pointer"
-                        }}
-                    />
+                    <DialogContent>
+                        <Typography sx={{ mb: 2 }}>
+                            Exam will be <b>auto submitted</b> in
+                        </Typography>
 
-                    <Typography
-                        sx={{
-                            position: "absolute",
-                            left: "50%",
-                            transform: "translateX(-50%)",
-                            fontSize: "26px",
-                            fontWeight: "bold",
-                            color: timeLeft <= 600 ? "red" : "black"
-                        }}
-                    >
-                        {formatTime(timeLeft)}
-                    </Typography>
+                        <Typography
+                            variant="h4"
+                            color="error"
+                            fontWeight="bold"
+                            sx={{ mb: 2 }}
+                        >
+                            {timer}s
+                        </Typography>
 
-                    <Typography
-                        sx={{
-                            position: "absolute",
-                            right: "12rem",
-                            fontSize: "20px",
-                            fontWeight: "bold",
-                            color: "#1976d2"
-                        }}
-                    >
-                        {attemptedCount}/{totalQuestions}
-                    </Typography>
+                        <Typography color="error" fontWeight="bold">
+                            Disturbances: {disturbanceCount}/{MAX_DISTURBANCE}
+                        </Typography>
+                    </DialogContent>
 
-                    <Typography
-                        sx={{
-                            position: "absolute",
-                            right: "6rem",
-                            fontWeight: "bold",
-                            color: "black"
-                        }}
-                    >
-                        {user?.username || "User"}
-                    </Typography>
+                    <DialogActions>
+                        <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
+                            <Button variant="contained" size="large" onClick={requestFullScreen}>
+                                Enter Full Screen
+                            </Button>
+                        </Box>
+                    </DialogActions>
+                </Box>
+            </Dialog>
 
-                    <Avatar
-                        src="https://cdn-icons-png.flaticon.com/512/219/219959.png"
-                        sx={{ position: "absolute", right: "1rem" }}
-                    />
+            {/* WARNING DIALOG */}
+            <Dialog open={warningOpen}>
+                <Box sx={{ width: 420, p: 3, textAlign: "center" }}>
+                    <DialogTitle color="error" sx={{ fontWeight: "bold" }}>
+                        Suspicious Activity Detected
+                    </DialogTitle>
 
-                </Toolbar>
-            </Container>
-        </AppBar>
+                    <DialogContent>
+                        <Typography color="error" sx={{ mb: 2 }}>
+                            {lastViolation}
+                        </Typography>
+
+                        <Typography sx={{ mb: 1 }}>
+                            This exam is monitored strictly.
+                        </Typography>
+
+                        <Typography color="error" fontWeight="bold">
+                            Disturbances: {disturbanceCount}/{MAX_DISTURBANCE}
+                        </Typography>
+
+                        {disturbanceCount === MAX_DISTURBANCE - 1 && (
+                            <Typography color="error" fontWeight="bold" sx={{ mt: 1 }}>
+                                ⚠️ Last Warning! Next violation will submit the exam.
+                            </Typography>
+                        )}
+                    </DialogContent>
+
+                    <DialogActions>
+                        <Box sx={{ width: "100%", display: "flex", justifyContent: "center" }}>
+                            <Button
+                                variant="contained"
+                                color="error"
+                                onClick={() => setWarningOpen(false)}
+                            >
+                                Understood
+                            </Button>
+                        </Box>
+                    </DialogActions>
+                </Box>
+            </Dialog>
+        </>
     );
 };
 
-export default TestNavbar;
+export default FullScreenPrompt;

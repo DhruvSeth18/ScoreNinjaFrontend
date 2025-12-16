@@ -74,7 +74,7 @@ const QuizNotStartedPage = () => {
                     startTime: res.quiz.startTime,
                     endTime: res.quiz.endTime,
                     duration: `${res.quiz.duration}hr`,
-                    totalQuestions: res.quiz.totalMarks,
+                    totalQuestions: res.quiz.totalQuestions,
                     createdBy: res.quiz.createdBy,
                     attemptedUsersId: res.quiz.attemptedUsersId || []
                 };

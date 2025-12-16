@@ -32,6 +32,8 @@ import { GetQuizById, addQuestionAPI, DeleteQuestion, UpdateQuiz } from "../../a
 import { useParams } from "react-router-dom";
 import { deleteQuiz } from "../../api/api";
 import { useNavigate } from "react-router-dom";
+import { addMultipleQuestions } from "../../api/api";
+import * as XLSX from "xlsx";
 
 const Transition = React.forwardRef(function Transition(props, ref) {
   return <Slide direction="down" ref={ref} {...props} />;
@@ -85,27 +87,103 @@ const EditQuiz = () => {
 
   // Fetch quiz
   useEffect(() => {
-    const fetchQuiz = async () => {
-      if (!quizId) return;
-      const result = await GetQuizById(quizId);
-      if (result.status) {
-        const quiz = result.data;
-        setFormData({
-          quizName: quiz.quizName || "",
-          description: quiz.description || "",
-          startDate: quiz.quizDate ? quiz.quizDate.split("T")[0] : "",
-          startTime: quiz.startTime || "",
-          endTime: quiz.endTime || "",
-          passingPercentage: quiz.passingPercentage || 50,
-        });
-        setDuration(quiz.duration || 1);
-        setTotalQuestions(quiz.totalQuestions);
-        setQuestions(quiz.questions || []);
-        openSnackbar("Quiz loaded successfully", "success");
-      } else openSnackbar(result.message || "Failed to fetch quiz", "error");
-    };
     fetchQuiz();
   }, [quizId]);
+
+  const fetchQuiz = async () => {
+    if (!quizId) return;
+
+    const result = await GetQuizById(quizId);
+    if (result.status) {
+      const quiz = result.data;
+
+      setFormData({
+        quizName: quiz.quizName || "",
+        description: quiz.description || "",
+        startDate: quiz.quizDate ? quiz.quizDate.split("T")[0] : "",
+        startTime: quiz.startTime || "",
+        endTime: quiz.endTime || "",
+        passingPercentage: quiz.passingPercentage || 50,
+      });
+
+      setDuration(quiz.duration || 1);
+      setTotalQuestions(String(quiz.totalQuestions || 0));
+      setQuestions(quiz.questions || []);
+    }
+  };
+
+
+
+  const handleExcelImport = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = async (evt) => {
+      const data = new Uint8Array(evt.target.result);
+      const workbook = XLSX.read(data, { type: "array" });
+
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+      rows.shift(); // remove header
+
+      const parsedQuestions = [];
+      let skippedRows = 0;
+
+      rows.forEach((row) => {
+        const r = [...row];
+        while (r.length < 6) r.push("");
+
+        const [questionText, opt1, opt2, opt3, opt4, correctOption] = r;
+        const options = [opt1, opt2, opt3, opt4].map(o => o?.toString().trim() || "");
+        const correct = correctOption?.toString().trim() || "";
+
+        if (!questionText?.trim() || options.filter(Boolean).length < 2 || !options.includes(correct)) {
+          skippedRows++;
+          return;
+        }
+
+        parsedQuestions.push({
+          questionText: questionText.trim(),
+          options,
+          correctOption: correct,
+          timeLimit: 30,
+          selectedOption: null
+        });
+      });
+
+      try {
+        const result = await addMultipleQuestions(quizId, parsedQuestions);
+
+        if (result.status) {
+          const added = (result.addedQuestions || []).map(q => ({
+            questionText: q.questionText || "",
+            options: q.options || [],
+            correctOption: q.correctOption || "",
+            timeLimit: q.timeLimit || 30,
+            selectedOption: null
+          }));
+
+          setQuestions(prev => [...prev, ...added]); // ✅ Merge into existing questions immediately
+          if (!manualTotal) setTotalQuestions(prev => String(prev.length + added.length));
+          fetchQuiz();
+
+          openSnackbar(`📦 Questions imported! Added: ${added.length}, Skipped: ${result.skippedQuestions?.length || skippedRows}`, "success");
+        } else {
+          openSnackbar(result.message || "Failed to import questions", "error");
+        }
+      } catch (err) {
+        console.error(err);
+        openSnackbar("Error importing questions", "error");
+      }
+
+      e.target.value = ""; // reset file input
+    };
+    
+    reader.readAsArrayBuffer(file);
+  };
+
 
   const handleDeleteQuiz = async () => {
     if (!window.confirm("Are you sure you want to delete this quiz? This action cannot be undone.")) return;
@@ -336,7 +414,7 @@ const EditQuiz = () => {
             id="excelInput"
             accept=".xlsx, .xls"
             style={{ display: "none" }}
-          // onChange={handleExcelImport}
+            onChange={handleExcelImport}
           />
         </Box>
 
@@ -409,7 +487,7 @@ const EditQuiz = () => {
                       </Button>
                     </Box>
                     <ul className="flex flex-col gap-3 mt-5">
-                      {q.options.map((opt, i) => (
+                      {(q.options || []).map((opt, i) => (
                         <li
                           key={i}
                           className={`flex items-center gap-3 p-3 rounded-xl ${opt === q.correctOption ? "bg-green-50 text-green-700 font-semibold ring-1 ring-green-300" : "bg-gray-200 text-gray-800"

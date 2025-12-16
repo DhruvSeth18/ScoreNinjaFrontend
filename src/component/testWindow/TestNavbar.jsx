@@ -33,7 +33,6 @@ const TestNavbar = ({
     const [timeLeft, setTimeLeft] = useState(0);
     const [examOver, setExamOver] = useState(false);
     const [showConfirmSubmit, setShowConfirmSubmit] = useState(false);
-
     const submitOnceRef = useRef(false);
 
     const isApiEmpty = !apiData || Object.keys(apiData).length === 0;
@@ -47,6 +46,7 @@ const TestNavbar = ({
 
         const quizStart = new Date(attempt.quizStartTime);
         const durationEnd = new Date(quizStart.getTime() + attempt.duration * 60 * 60 * 1000);
+
         const windowEnd = new Date(quizStart);
         const [eh, em] = attempt.endTime.split(":");
         windowEnd.setHours(parseInt(eh), parseInt(em), 0, 0);
@@ -79,7 +79,6 @@ const TestNavbar = ({
         const autoSubmitQuiz = async () => {
             try {
                 console.log("🛑 AUTO SUBMIT STARTED");
-
                 const res = await submitQuiz(attempt.quizId);
 
                 if (res.status) {
@@ -215,9 +214,7 @@ const TestNavbar = ({
                     <Typography fontSize={22} fontWeight="bold">
                         Exam Completed
                     </Typography>
-                    <Typography mt={2}>
-                        Your exam has been automatically submitted.
-                    </Typography>
+                    <Typography mt={2}>Your exam has been automatically submitted.</Typography>
                     <Typography mt={1} color="error" fontWeight="bold">
                         Time is over
                     </Typography>
@@ -266,6 +263,7 @@ const TestNavbar = ({
                         {questions.map((q, index) => {
                             const attempted = submittedAnswers[index];
                             const isCurrent = index === selectedIndex;
+
                             return (
                                 <Box
                                     key={index}
@@ -273,7 +271,11 @@ const TestNavbar = ({
                                         width: "100%",
                                         aspectRatio: "1/1",
                                         borderRadius: 3,
-                                        bgcolor: isCurrent ? "primary.main" : attempted ? "success.main" : "grey.400",
+                                        bgcolor: isCurrent
+                                            ? "primary.main"
+                                            : attempted
+                                            ? "success.main"
+                                            : "grey.400",
                                         display: "flex",
                                         alignItems: "center",
                                         justifyContent: "center",
@@ -283,7 +285,10 @@ const TestNavbar = ({
                                         fontSize: "1.2rem",
                                         boxShadow: "0px 4px 15px rgba(0,0,0,0.2)",
                                         transition: "all 0.3s ease",
-                                        "&:hover": { transform: "scale(1.1)", boxShadow: "0px 6px 20px rgba(0,0,0,0.3)" },
+                                        "&:hover": {
+                                            transform: "scale(1.1)",
+                                            boxShadow: "0px 6px 20px rgba(0,0,0,0.3)"
+                                        },
                                         position: "relative"
                                     }}
                                     onClick={() => {
@@ -347,7 +352,7 @@ const TestNavbar = ({
                                 boxShadow: "0px 3px 15px rgba(0,0,0,0.3)",
                                 "&:hover": { transform: "scale(1.05)", boxShadow: "0px 6px 20px rgba(0,0,0,0.4)" }
                             }}
-                            onClick={() => setShowConfirmSubmit(true)}
+                            onClick={handleSubmitClick}
                         >
                             Submit Quiz
                         </Button>

@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { Box, CircularProgress } from "@mui/material";
+import { useSearchParams } from "react-router-dom";
+
 import TestNavbar from "./TestNavbar";
 import TestWindow from "./TestWindow";
-import { startQuiz } from "../../api/api";
-import { useSearchParams } from "react-router-dom";
+import FullScreenPrompt from "./FullScreenPrompt";
+
+import { startQuiz, submitAnswer } from "../../api/api";
 
 const Test = () => {
     const [searchParams] = useSearchParams();
@@ -12,20 +15,38 @@ const Test = () => {
     const [apiData, setApiData] = useState(null);
     const [showLoader, setShowLoader] = useState(true);
 
-    // 🔥 LIFTED STATE
+    const [selectedIndex, setSelectedIndex] = useState(0);
+    const [tempAnswers, setTempAnswers] = useState({});
     const [submittedAnswers, setSubmittedAnswers] = useState({});
-    const [selectedIndex, setSelectedIndex] = useState(0); // current question
-    const [showOverview, setShowOverview] = useState(false); // Home icon modal
+    const [showOverview, setShowOverview] = useState(false);
 
+    /* ---------------- START QUIZ ---------------- */
     useEffect(() => {
         const init = async () => {
             try {
                 const res = await startQuiz(quizId);
-                if (res.status) {
-                    setApiData(res);
-                } else {
-                    console.error(res.message);
+
+                if (!res?.status) {
+                    console.error(res?.message || "Start quiz failed");
+                    return;
                 }
+
+                setApiData(res);
+
+                // 🔁 Restore previous answers (refresh safe)
+                const temp = {};
+                const submitted = {};
+
+                res.attempt.shuffledQuestions.forEach((q, index) => {
+                    if (q.selectedOption) {
+                        temp[index] = q.selectedOption;
+                        submitted[index] = q.selectedOption;
+                    }
+                });
+
+                setTempAnswers(temp);
+                setSubmittedAnswers(submitted);
+
             } catch (err) {
                 console.error("API error:", err);
             }
@@ -33,34 +54,74 @@ const Test = () => {
 
         init();
 
-        // ⏳ FORCE 2 sec loader
-        const timer = setTimeout(() => {
-            setShowLoader(false);
-        }, 2000);
-
+        // Loader
+        const timer = setTimeout(() => setShowLoader(false), 1500);
         return () => clearTimeout(timer);
+
     }, [quizId]);
+
+    /* ---------------- SUBMIT SINGLE ANSWER ---------------- */
+    const handleSubmitAnswer = async (index) => {
+        if (!apiData) return;
+
+        const question = apiData.attempt.shuffledQuestions[index];
+        const selected = tempAnswers[index];
+
+        if (!selected) return;
+
+        try {
+            const res = await submitAnswer(
+                apiData.attempt.id,
+                question.id,
+                selected
+            );
+
+            if (res?.status) {
+                setSubmittedAnswers((prev) => ({
+                    ...prev,
+                    [index]: selected
+                }));
+
+                // Auto next question
+                if (index < apiData.attempt.shuffledQuestions.length - 1) {
+                    setSelectedIndex(index + 1);
+                }
+            }
+        } catch (err) {
+            console.error("Submit answer error:", err);
+        }
+    };
+
+    /* ---------------- LOADER ---------------- */
+    if (showLoader || !apiData) {
+        return (
+            <Box
+                sx={{
+                    position: "fixed",
+                    inset: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    backgroundColor: "#fff",
+                    zIndex: 9999
+                }}
+            >
+                <CircularProgress size={70} thickness={4} />
+            </Box>
+        );
+    }
 
     return (
         <Box sx={{ position: "relative", minHeight: "100vh" }}>
-            {/* 🔵 FULL SCREEN LOADER */}
-            {showLoader && (
-                <Box
-                    sx={{
-                        position: "fixed",
-                        inset: 0,
-                        backgroundColor: "white",
-                        zIndex: 9999,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center"
-                    }}
-                >
-                    <CircularProgress size={70} thickness={4} color="primary" />
-                </Box>
-            )}
 
-            {/* ✅ NAVBAR WITH LIVE ATTEMPT COUNT + Home Icon Modal */}
+            {/* 🔒 FULLSCREEN + DISTURBANCE GUARD */}
+            <FullScreenPrompt
+                quizId={quizId}
+                attemptId={apiData.attempt.id}
+                initialDisturbance={apiData.attempt.totalDisturbance || 0}
+            />
+
+            {/* 🧭 NAVBAR */}
             <TestNavbar
                 apiData={apiData}
                 attemptedCount={Object.keys(submittedAnswers).length}
@@ -71,13 +132,15 @@ const Test = () => {
                 submittedAnswers={submittedAnswers}
             />
 
-            {/* ✅ TEST WINDOW */}
+            {/* 📝 TEST WINDOW */}
             <TestWindow
-                quizAttempt={apiData?.attempt}
-                submittedAnswers={submittedAnswers}
-                setSubmittedAnswers={setSubmittedAnswers}
+                quizAttempt={apiData.attempt}
                 selectedIndex={selectedIndex}
                 setSelectedIndex={setSelectedIndex}
+                tempAnswers={tempAnswers}
+                setTempAnswers={setTempAnswers}
+                submittedAnswers={submittedAnswers}
+                handleSubmitAnswer={handleSubmitAnswer}
             />
         </Box>
     );

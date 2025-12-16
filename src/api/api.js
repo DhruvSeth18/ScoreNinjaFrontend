@@ -188,6 +188,7 @@ export const addQuestionAPI = async (quizId, questionData) => {
 };
 
 
+
 export const DeleteQuestion = async (quizId, questionText) => {
     try {
         const token = localStorage.getItem("token");
@@ -249,6 +250,7 @@ export const UpdateQuiz = async (quizId, quizData) => {
         };
     }
 };
+
 
 export const getAllUserQuizzes = async (userId) => {
     try {
@@ -637,3 +639,139 @@ export const submitQuiz = async (quizId) => {
         };
     }
 };
+
+export const submitAnswer = async (quizAttemptId, questionId, selectedOption) => {
+    try {
+        const token = localStorage.getItem("token");
+
+        const response = await axios.post(
+            `${url}/quiz/submit-answer`,
+            null, // body nahi hai, params ke through ja rahe
+            {
+                params: { quizAttemptId, questionId, selectedOption },
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`,
+                },
+                timeout: 6000,
+            }
+        );
+
+        if (response.status === 200) {
+            return {
+                status: true,
+                message: response.data.message,
+                attempt: response.data.attempt,
+            };
+        }
+
+        return {
+            status: false,
+            message: "Failed to submit answer",
+        };
+
+    } catch (error) {
+        if (error.response) {
+            return {
+                status: false,
+                message: error.response.data.message || error.response.data || "Server error",
+            };
+        }
+
+        return {
+            status: false,
+            message: error.message || "Network error or server not responding",
+        };
+    }
+};
+
+export const addDisturbance = async (attemptId) => {
+    try {
+        const token = localStorage.getItem("token");
+        const response = await axios.post(
+            `${url}/quiz/disturbance`,
+            null, // body nahi, sirf params
+            {
+                params: { attemptId },
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`,
+                },
+                timeout: 6000,
+            }
+        );
+
+        if (response.status === 200) {
+            return {
+                status: true,
+                message: response.data.message,
+                totalDisturbance: response.data.totalDisturbance,
+                endQuiz: response.data.endQuiz,
+                quizStatus: response.data.status,
+            };
+        }
+
+        return { status: false, message: "Failed to add disturbance" };
+
+    } catch (error) {
+        if (error.response) {
+            return {
+                status: false,
+                message: error.response.data.message || "Server error",
+            };
+        }
+        return { status: false, message: error.message || "Network error" };
+    }
+};
+
+
+
+export const addMultipleQuestions = async (quizId, questionList) => {
+    try {
+        const token = localStorage.getItem("token");
+
+        const response = await axios.post(
+            `${url}/quiz/addMultipleQues`,
+            questionList, // array of questions
+            {
+                params: { quizId },
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`,
+                },
+                timeout: 8000,
+            }
+        );
+
+        if (response.status === 200) {
+            return {
+                status: true,
+                message: response.data.Message || "Questions added successfully",
+                addedQuestions: response.data.AddedQuestions,
+                skippedQuestions: response.data.SkippedQuestions,
+                totalNow: response.data.TotalNow,
+            };
+        }
+
+        return {
+            status: false,
+            message: "Failed to add questions",
+        };
+
+    } catch (error) {
+        if (error.response) {
+            return {
+                status: false,
+                message:
+                    error.response.data.message ||
+                    error.response.data ||
+                    "Server error",
+            };
+        }
+
+        return {
+            status: false,
+            message: error.message || "Network error",
+        };
+    }
+}
